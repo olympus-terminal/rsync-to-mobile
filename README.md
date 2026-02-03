@@ -134,6 +134,41 @@ rsync -avz -e 'ssh -p 8022' u0_a297@192.168.1.100:/storage/emulated/0/DCIM/Camer
 - Make sure `sshd` is running in Termux
 - Check that both devices are on the same network
 
+### "Broken pipe" / Connection drops mid-transfer
+This usually happens when your phone screen turns off and Android suspends Termux.
+
+**Solution 1: Keep the connection alive**
+```bash
+rsync -Pvrt -e 'ssh -p 8022 -o ServerAliveInterval=60' *.mp3 user@PHONE_IP:~/
+```
+
+**Solution 2: Acquire a wake lock in Termux**
+```bash
+termux-wake-lock
+```
+This prevents Termux from sleeping when the screen is off.
+
+**Solution 3: Use --partial to resume interrupted transfers**
+```bash
+rsync -Pvrt --partial -e 'ssh -p 8022 -o ServerAliveInterval=60' files/ user@PHONE_IP:~/
+```
+
+**Solution 4: Disable battery optimization**
+Go to Android **Settings → Apps → Termux → Battery → Unrestricted**
+
+### "Operation not permitted" / mkstemp failed
+Android's scoped storage blocks direct writes to `/storage/emulated/0/`. Use Termux's home directory instead:
+
+```bash
+# Use ~/ instead of /storage/emulated/0/
+rsync -avz -e 'ssh -p 8022' *.mp3 user@PHONE_IP:~/
+```
+
+Then move files on the phone:
+```bash
+mv ~/*.mp3 ~/storage/music/
+```
+
 ### "Permission denied"
 - Verify you ran `termux-setup-storage`
 - Check the password is correct
@@ -166,13 +201,14 @@ Save as `sync-to-phone.sh`:
 
 ```bash
 #!/bin/bash
-PHONE_IP="192.168.1.100"
-PHONE_USER="u0_a297"
+PHONE_IP="192.168.1.100"  # Replace with your phone's IP
+PHONE_USER="u0_a297"       # Replace with your Termux username
 PHONE_PORT="8022"
 
-rsync -avz --progress -e "ssh -p $PHONE_PORT" \
+rsync -Pvrt --partial \
+    -e "ssh -p $PHONE_PORT -o ServerAliveInterval=60" \
     "$1" \
-    "$PHONE_USER@$PHONE_IP:/storage/emulated/0/Download/"
+    "$PHONE_USER@$PHONE_IP:~/"
 ```
 
 Usage:
