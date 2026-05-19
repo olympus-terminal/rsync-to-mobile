@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/banner.png" alt="rsync-to-mobile banner" width="100%">
+</p>
+
 # Rsync to Mobile (Termux)
 
 Sync files from your PC to your Android phone using rsync over SSH with Termux.
